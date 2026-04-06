@@ -1,0 +1,10 @@
+.idea/
+.vscode/
+
+Compose/.env
+
+SQL/Cassandra/search.csv
+SQL/Cassandra/tracking.csv
+SQL/MySQL/*.csv
+
+!SQL/Cassandra/tracking_sample.csv

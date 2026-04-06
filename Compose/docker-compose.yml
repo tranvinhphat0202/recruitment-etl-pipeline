@@ -1,0 +1,75 @@
+services:
+  cassandra:
+    image: cassandra:4.1
+    container_name: recruitment_cassandra
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'DESCRIBE KEYSPACES' 127.0.0.1 9042 || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 15
+    networks:
+      - recruitment_net
+
+  mysql:
+    image: mysql:8.0
+    container_name: recruitment_mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root123
+      - MYSQL_DATABASE=recruitment_dw
+      - MYSQL_USER=dw_user
+      - MYSQL_PASSWORD=dw_pass
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: ["mysqld", "--default-authentication-plugin=mysql_native_password"]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -proot123 --silent"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+    networks:
+      - recruitment_net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: recruitment_grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - recruitment_net
+
+  pyspark:
+    image: apache/spark:3.5.1
+    container_name: recruitment_pyspark
+    command: ["bash", "-lc", "sleep infinity"]
+    volumes:
+      - ../ETL:/opt/etl
+    depends_on:
+      cassandra:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    networks:
+      - recruitment_net
+
+networks:
+  recruitment_net:
+    name: recruitment_net
+
+volumes:
+  cassandra_data:
+  mysql_data:
+  grafana_data:
